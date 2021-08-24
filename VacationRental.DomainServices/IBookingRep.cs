@@ -1,0 +1,8 @@
+﻿using VacationRental.Domain.Entities;
+
+namespace VacationRental.DomainServices
+{
+    public interface IBookingRep : IRep<Booking>
+    {
+    }
+}

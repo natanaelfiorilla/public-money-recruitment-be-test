@@ -1,7 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using VacationRental.Api.Models;
+using VacationRental.ApplicationServices;
+using VacationRental.Common;
+using VacationRental.Domain.Entities;
 
 namespace VacationRental.Api.Controllers
 {
@@ -9,64 +14,57 @@ namespace VacationRental.Api.Controllers
     [ApiController]
     public class BookingsController : ControllerBase
     {
-        private readonly IDictionary<int, RentalViewModel> _rentals;
-        private readonly IDictionary<int, BookingViewModel> _bookings;
+        private readonly IBookingService _bookingService;
+        private readonly IMapper _mapper;
 
-        public BookingsController(
-            IDictionary<int, RentalViewModel> rentals,
-            IDictionary<int, BookingViewModel> bookings)
+        public BookingsController(IBookingService bookingService,
+                                  IMapper mapper)
         {
-            _rentals = rentals;
-            _bookings = bookings;
+            _bookingService = bookingService;
+            _mapper = mapper;
         }
 
         [HttpGet]
         [Route("{bookingId:int}")]
-        public BookingViewModel Get(int bookingId)
+        public ActionResult<BookingViewModel> Get(int bookingId)
         {
-            if (!_bookings.ContainsKey(bookingId))
-                throw new ApplicationException("Booking not found");
+            OperationResult<Booking> result = _bookingService.GetBooking(bookingId);
 
-            return _bookings[bookingId];
+            if (result == null) throw new Exception("Internal Server Error.");
+
+            if (!result)
+            {
+                if (result.HasErrors()) return BadRequest(result.Errors);
+                
+                if (result.IsException()) throw new Exception("Internal Server Error.");
+            }
+
+            if (result.Value == null) return NotFound();
+         
+            return _mapper.Map<Booking, BookingViewModel>(result.Value);            
         }
 
         [HttpPost]
-        public ResourceIdViewModel Post(BookingBindingModel model)
+        public ActionResult<ResourceIdViewModel> Post(BookingBindingModel model)
         {
-            if (model.Nights <= 0)
-                throw new ApplicationException("Nigts must be positive");
-            if (!_rentals.ContainsKey(model.RentalId))
-                throw new ApplicationException("Rental not found");
+            if(model.Nights <= 0) return BadRequest("Nights must be positive");
 
-            for (var i = 0; i < model.Nights; i++)
+            var bookingNew = _mapper.Map<BookingBindingModel, Booking>(model);
+
+            OperationResult<Booking> result = _bookingService.Create(bookingNew);
+
+            if (result == null) throw new Exception("Internal Server Error.");
+
+            if (!result)
             {
-                var count = 0;
-                foreach (var booking in _bookings.Values)
-                {
-                    if (booking.RentalId == model.RentalId
-                        && (booking.Start <= model.Start.Date && booking.Start.AddDays(booking.Nights) > model.Start.Date)
-                        || (booking.Start < model.Start.AddDays(model.Nights) && booking.Start.AddDays(booking.Nights) >= model.Start.AddDays(model.Nights))
-                        || (booking.Start > model.Start && booking.Start.AddDays(booking.Nights) < model.Start.AddDays(model.Nights)))
-                    {
-                        count++;
-                    }
-                }
-                if (count >= _rentals[model.RentalId].Units)
-                    throw new ApplicationException("Not available");
+                if (result.HasErrors()) return BadRequest(result.Errors);
+
+                if (result.IsException()) throw new Exception("Internal Server Error.");
             }
 
+            if (result.Value == null) throw new Exception("Internal Server Error.");
 
-            var key = new ResourceIdViewModel { Id = _bookings.Keys.Count + 1 };
-
-            _bookings.Add(key.Id, new BookingViewModel
-            {
-                Id = key.Id,
-                Nights = model.Nights,
-                RentalId = model.RentalId,
-                Start = model.Start.Date
-            });
-
-            return key;
+            return _mapper.Map<Booking, ResourceIdViewModel>(result.Value);
         }
     }
 }
