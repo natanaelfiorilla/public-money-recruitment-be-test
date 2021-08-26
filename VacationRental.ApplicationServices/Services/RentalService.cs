@@ -20,15 +20,21 @@ namespace VacationRental.ApplicationServices.Services
 
             try
             {
-                var rental = new Rental()
+                Validate(rentalNew, result);
+
+                if (result)
                 {
-                    Id = _rentalRep.Count() + 1,
-                    Units = rentalNew.Units
-                };
+                    var rental = new Rental()
+                    {
+                        Id = _rentalRep.Count() + 1,
+                        Units = rentalNew.Units,
+                        PreparationTimeInDays = rentalNew.PreparationTimeInDays
+                    };
 
-                _rentalRep.Add(rental);
+                    _rentalRep.Add(rental);
 
-                result.Value = rental;
+                    result.Value = rental;
+                }
             }
             catch (Exception ex)
             {
@@ -52,6 +58,12 @@ namespace VacationRental.ApplicationServices.Services
             }
 
             return result;
+        }
+
+        private void Validate(Rental rentalNew, OperationResult<Rental> result)
+        {
+            if (rentalNew.Units <= 0) result.AddError("Units be positive");
+            if (rentalNew.PreparationTimeInDays < 0) result.AddError("Preparation Time must be positive");
         }
     }
 }

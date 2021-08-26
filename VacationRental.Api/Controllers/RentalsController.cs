@@ -46,6 +46,9 @@ namespace VacationRental.Api.Controllers
         [HttpPost]
         public ActionResult<ResourceIdViewModel> Post(RentalBindingModel model)
         {
+            if (model.Units <= 0) return BadRequest("Units musts be positive");
+            if (model.PreparationTimeInDays < 0) return BadRequest("Preparation Time must be positive");
+
             var rentalNew = _mapper.Map<RentalBindingModel, Rental>(model);
 
             OperationResult<Rental> result = _rentalService.Create(rentalNew);

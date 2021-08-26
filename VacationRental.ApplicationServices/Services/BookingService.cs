@@ -44,7 +44,6 @@ namespace VacationRental.ApplicationServices.Services
 
                         result.Value = booking;
                     }
-
                 }
             }
             catch (Exception ex)
@@ -74,6 +73,9 @@ namespace VacationRental.ApplicationServices.Services
         private void Validate(Booking bookingNew, OperationResult<Booking> result)
         {
             if (!_rentalRep.Exists(bookingNew.RentalId)) result.AddError("Rental not found");
+            if (bookingNew.Nights <= 0) result.AddError("Nights must be positive");
+            if (bookingNew.Start < DateTime.MinValue) result.AddError($"Start must me grater than {DateTime.MinValue}");
+            if (bookingNew.Start > DateTime.MaxValue) result.AddError($"Start must be lower than {DateTime.MaxValue}");
         }
 
         private void ValidateAvailability(Booking bookingNew, OperationResult<Booking> result)
