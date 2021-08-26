@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.Swagger;
 using VacationRental.Api.Models;
@@ -39,6 +40,7 @@ namespace VacationRental.Api
             services.AddScoped<IRentalRep, RentalRep>();
             services.AddScoped<IBookingService, BookingService>();
             services.AddScoped<IRentalService, RentalService>();
+            services.AddScoped<ICalendarService, CalendarService>();
 
             //Set Automapper configuration
             services.AddAutoMapper(c => c.AddProfile<VacationRentalMappingProfile>(), typeof(Startup));
@@ -46,7 +48,7 @@ namespace VacationRental.Api
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
             {

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using VacationRental.Domain.Entities;
 using VacationRental.DomainServices;
@@ -51,6 +52,22 @@ namespace VacationRental.Infraestructure
                 {
                     return _context.Bookings.Values.ToList();
                 }
+            }
+            catch
+            {
+                //Add some logging
+            }
+
+            return new List<Booking>();
+        }
+
+        public IEnumerable<Booking> GetBookingsByRentalDate(int rentaId, DateTime date)
+        {
+            try
+            {
+                return _context.Bookings.Values.Where(b => b.RentalId == rentaId &&
+                                                b.Start <= date &&
+                                                b.Start.AddDays(b.Nights) > date).ToList();
             }
             catch
             {

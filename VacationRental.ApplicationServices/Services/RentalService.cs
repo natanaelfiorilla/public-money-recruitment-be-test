@@ -53,19 +53,5 @@ namespace VacationRental.ApplicationServices.Services
 
             return result;
         }
-
-        //public bool Exists(int id)
-        //{
-        //    try
-        //    {
-        //        return _rentalRep.Exists(id);
-        //    }
-        //    catch (Exception)
-        //    {
-        //        //Add some logging
-        //    }
-
-        //    return false;
-        //}
     }
 }
