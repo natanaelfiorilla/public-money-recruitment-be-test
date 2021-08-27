@@ -85,6 +85,9 @@ namespace VacationRental.Common
         {
             Value = value;
         }
+
+        internal OperationResult(Exception ex) : base(ex)
+        {  }
     }
 
     public static class OperationResultHelpers
@@ -117,6 +120,11 @@ namespace VacationRental.Common
         public static OperationResult<U> Error<U>(string errorMessage, U value)
         {
             return new OperationResult<U>(value, errorMessage);
+        }
+
+        public static OperationResult<U> ExceptionResult<U>(Exception ex)
+        {
+            return new OperationResult<U>(ex);
         }
     }
 }

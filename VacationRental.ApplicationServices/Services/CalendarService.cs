@@ -82,8 +82,8 @@ namespace VacationRental.ApplicationServices.Services
         private void Validate(int rentalId, DateTime start, int nights, OperationResult<Calendar> result)
         {
             if (nights <= 0) result.AddError("Nights must be positive");
-            if (start < DateTime.MinValue) result.AddError($"Start must me grater than {DateTime.MinValue}");
-            if (start > DateTime.MaxValue) result.AddError($"Start must be lower than {DateTime.MaxValue}");
+            if (start.Date <= DateTime.MinValue.Date) result.AddError($"Start must me grater than {DateTime.MinValue}");
+            if (start.Date >= DateTime.MaxValue.Date) result.AddError($"Start must be lower than {DateTime.MaxValue}");
             if (!_rentalRep.Exists(rentalId)) result.AddError("Rental not found");
         }
     }

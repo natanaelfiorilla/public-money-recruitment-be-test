@@ -26,8 +26,8 @@ namespace VacationRental.Api.Controllers
         public ActionResult<CalendarViewModel> Get(int rentalId, DateTime start, int nights)
         {
             if (nights <= 0) return BadRequest("Nights must be positive");
-            if (start < DateTime.MinValue) return BadRequest($"Start must me grater than {DateTime.MinValue}");
-            if (start > DateTime.MaxValue) return BadRequest($"Start must be lower than {DateTime.MaxValue}");
+            if (start.Date <= DateTime.MinValue.Date) return BadRequest($"Start must me grater than {DateTime.MinValue}");
+            if (start.Date >= DateTime.MaxValue.Date) return BadRequest($"Start must be lower than {DateTime.MaxValue}");
 
             OperationResult<Calendar> result = _calendarService.GetCalendar(rentalId, start, nights);
 

@@ -118,8 +118,8 @@ namespace VacationRental.ApplicationServices.Services
         {
             if (!_rentalRep.Exists(bookingNew.RentalId)) result.AddError("Rental not found");
             if (bookingNew.Nights <= 0) result.AddError("Nights must be positive");
-            if (bookingNew.Start < DateTime.MinValue) result.AddError($"Start must me grater than {DateTime.MinValue}");
-            if (bookingNew.Start > DateTime.MaxValue) result.AddError($"Start must be lower than {DateTime.MaxValue}");
+            if (bookingNew.Start.Date <= DateTime.MinValue.Date) result.AddError($"Start must me grater than {DateTime.MinValue}");
+            if (bookingNew.Start.Date >= DateTime.MaxValue.Date) result.AddError($"Start must be lower than {DateTime.MaxValue}");
         }
     }
 }

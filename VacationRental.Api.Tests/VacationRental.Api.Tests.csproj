@@ -15,10 +15,14 @@
     <DotNetCliToolReference Include="dotnet-xunit" Version="2.3.1" />
     <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="3.1.18" />
     <PackageReference Include="Microsoft.AspNet.WebApi.Client" Version="5.2.7" />
+    <PackageReference Include="Moq" Version="4.16.1" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\VacationRental.Api\VacationRental.Api.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Remove="Moq" />
+  </ItemGroup>
 </Project>
