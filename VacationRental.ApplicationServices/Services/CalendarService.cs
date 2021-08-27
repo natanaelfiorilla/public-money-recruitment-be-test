@@ -39,14 +39,30 @@ namespace VacationRental.ApplicationServices.Services
                         var date = new CalendarDate()
                         {
                             Date = start.Date.AddDays(i),
-                            Bookings = new List<CalendarBooking>()
+                            Bookings = new List<CalendarBooking>(),
+                            PreparationTimes = new List<CalendarBooking>()
                         };
 
                         var bookingsForRentalDate = _bookingRep.GetBookingsByRentalDate(rentalId, date.Date);
 
                         foreach (var booking in bookingsForRentalDate)
                         {
-                            date.Bookings.Add(new CalendarBooking { Id = booking.Id });
+                            if(!booking.IsPreparationTime)
+                            {
+                                date.Bookings.Add(new CalendarBooking
+                                {
+                                    Id = booking.Id,
+                                    Unit = booking.Unit
+                                });
+                            }
+                            else
+                            {
+                                date.PreparationTimes.Add(new CalendarBooking
+                                {
+                                    Unit = booking.Unit
+                                });
+                            }
+
                         }
 
                         calendar.Dates.Add(date);

@@ -16,6 +16,7 @@ namespace VacationRental.Api.Models
             CreateMap<Calendar, CalendarViewModel>();
             CreateMap<CalendarDate, CalendarDateViewModel>();
             CreateMap<CalendarBooking, CalendarBookingViewModel>();
+            CreateMap<CalendarBooking, PreparationTimeViewModel>();
         }
     }
 }

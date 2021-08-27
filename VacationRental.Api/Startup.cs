@@ -41,6 +41,7 @@ namespace VacationRental.Api
             services.AddScoped<IBookingService, BookingService>();
             services.AddScoped<IRentalService, RentalService>();
             services.AddScoped<ICalendarService, CalendarService>();
+            services.AddScoped<IAvailabilityService, AvailabilityService>();
 
             //Set Automapper configuration
             services.AddAutoMapper(c => c.AddProfile<VacationRentalMappingProfile>(), typeof(Startup));

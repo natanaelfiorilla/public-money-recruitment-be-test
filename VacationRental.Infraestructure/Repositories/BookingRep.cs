@@ -77,6 +77,23 @@ namespace VacationRental.Infraestructure
             return new List<Booking>();
         }
 
+        public IEnumerable<Booking> GetBookingsByRentalRange(int rentaId, DateTime date, int nights)
+        {
+            try
+            {
+                return _context.Bookings.Values.Where(b => b.RentalId == rentaId 
+                                                        && (b.Start <= date && b.Start.AddDays(b.Nights) > date)
+                                                        || (b.Start < date.AddDays(nights) && b.Start.AddDays(b.Nights) >= date.AddDays(nights))
+                                                        || (b.Start > date && b.Start.AddDays(b.Nights) < date.AddDays(nights))).ToList();                
+            }
+            catch
+            {
+                //Add some logging
+            }
+
+            return new List<Booking>();
+        }
+
         public Booking GetById(int id)
         {
             try

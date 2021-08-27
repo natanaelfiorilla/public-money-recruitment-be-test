@@ -10,12 +10,15 @@ namespace VacationRental.ApplicationServices.Services
     {
         private readonly IBookingRep _bookingRep;
         private readonly IRentalRep _rentalRep;
+        private readonly IAvailabilityService _availabilityService;
 
         public BookingService(IBookingRep bookingRep,
-                              IRentalRep rentalRep)
+                              IRentalRep rentalRep,
+                              IAvailabilityService availabilityService)
         {
             _bookingRep = bookingRep;
             _rentalRep = rentalRep;
+            _availabilityService = availabilityService;
         }
 
         public OperationResult<Booking> Create(Booking bookingNew)
@@ -28,21 +31,41 @@ namespace VacationRental.ApplicationServices.Services
 
                 if (result)
                 {
-                    ValidateAvailability(bookingNew, result);
+                    _availabilityService.ValidateAvailability(bookingNew, result);
 
                     if (result)
                     {
-                        var booking = new Booking()
+                        var availableUnit = _availabilityService.RetreiveAvailableUnit(bookingNew, result);
+
+                        var rentalPreparationTime = GetRentalPreparationTime(bookingNew.RentalId, result);
+
+                        if (result)
                         {
-                            Id = _bookingRep.Count() + 1,
-                            Nights = bookingNew.Nights,
-                            RentalId = bookingNew.RentalId,
-                            Start = bookingNew.Start
-                        };
+                            var booking = new Booking()
+                            {
+                                Id = _bookingRep.Count() + 1,
+                                Nights = bookingNew.Nights,
+                                RentalId = bookingNew.RentalId,
+                                Start = bookingNew.Start,
+                                Unit = availableUnit
+                            };
 
-                        _bookingRep.Add(booking);
+                            _bookingRep.Add(booking);
 
-                        result.Value = booking;
+                            var preparationTime = new Booking()
+                            {
+                                Id = _bookingRep.Count() + 1,
+                                Nights = rentalPreparationTime,
+                                RentalId = booking.RentalId,
+                                Start = booking.Start.AddDays(booking.Nights),
+                                Unit = booking.Unit,
+                                IsPreparationTime = true
+                            };
+
+                            _bookingRep.Add(preparationTime);
+
+                            result.Value = booking;
+                        }
                     }
                 }
             }
@@ -52,6 +75,27 @@ namespace VacationRental.ApplicationServices.Services
             }
 
             return result;
+        }
+
+        private int GetRentalPreparationTime(int rentalId, OperationResult<Booking> result)
+        {
+            try
+            {
+                var rental = _rentalRep.GetById(rentalId);
+
+                if (rental != null)
+                {
+                    return rental.PreparationTimeInDays;
+                }
+
+                result.AddError("Rental not found");
+            }
+            catch (Exception ex)
+            {
+                result.AddException(ex);
+            }
+
+            return 0;
         }
 
         public OperationResult<Booking> GetBooking(int bookingId)
@@ -76,36 +120,6 @@ namespace VacationRental.ApplicationServices.Services
             if (bookingNew.Nights <= 0) result.AddError("Nights must be positive");
             if (bookingNew.Start < DateTime.MinValue) result.AddError($"Start must me grater than {DateTime.MinValue}");
             if (bookingNew.Start > DateTime.MaxValue) result.AddError($"Start must be lower than {DateTime.MaxValue}");
-        }
-
-        private void ValidateAvailability(Booking bookingNew, OperationResult<Booking> result)
-        {
-            //This For has no sense to me.
-            for (var i = 0; i < bookingNew.Nights; i++)
-            {
-                var count = 0;
-
-                var bookings = _bookingRep.GetAll();
-
-                var rental = _rentalRep.GetById(bookingNew.RentalId);
-
-                if (rental != null &&
-                    bookings != null)
-                {
-                    foreach (var booking in bookings)
-                    {
-                        if (booking.RentalId == bookingNew.RentalId
-                            && (booking.Start <= bookingNew.Start.Date && booking.Start.AddDays(booking.Nights) > bookingNew.Start.Date)
-                            || (booking.Start < bookingNew.Start.AddDays(bookingNew.Nights) && booking.Start.AddDays(booking.Nights) >= bookingNew.Start.AddDays(bookingNew.Nights))
-                            || (booking.Start > bookingNew.Start && booking.Start.AddDays(booking.Nights) < bookingNew.Start.AddDays(bookingNew.Nights)))
-                        {
-                            count++;
-                        }
-                    }
-
-                    if (count >= rental.Units) result.AddError("Not available");
-                }
-            }
         }
     }
 }

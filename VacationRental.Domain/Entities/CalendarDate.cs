@@ -7,6 +7,7 @@ namespace VacationRental.Domain.Entities
     {
         public DateTime Date { get; set; }
         public List<CalendarBooking> Bookings { get; set; }
+        public List<CalendarBooking> PreparationTimes { get; set; }
 
         public CalendarDate()
         {
