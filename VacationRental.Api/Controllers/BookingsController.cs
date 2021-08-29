@@ -45,7 +45,8 @@ namespace VacationRental.Api.Controllers
         [HttpPost]
         public ActionResult<ResourceIdViewModel> Post(BookingBindingModel model)
         {
-            if(model.Nights <= 0) return BadRequest("Nights must be positive");
+            if (model == null) return BadRequest();
+            if (model.Nights <= 0) return BadRequest("Nights must be positive");
             if (model.Start.Date <= DateTime.MinValue.Date) return BadRequest($"Start must me grater than {DateTime.MinValue}");
             if (model.Start.Date >= DateTime.MaxValue.Date) return BadRequest($"Start must be lower than {DateTime.MaxValue}");
 

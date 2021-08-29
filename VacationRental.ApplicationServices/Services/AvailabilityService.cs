@@ -29,11 +29,11 @@ namespace VacationRental.ApplicationServices.Services
 
                 var occupiedUnits = bookings.Select(x => x.Unit).Distinct();
 
-                for (int i = 1; i <= rental.Units; i++)
+                for (int unit = 1; unit <= rental.Units; unit++)
                 {
-                    if (occupiedUnits.Contains(i)) continue;
+                    if (occupiedUnits.Contains(unit)) continue;
 
-                    return i;
+                    return unit;
                 }
             }
             catch (Exception ex)
@@ -75,6 +75,47 @@ namespace VacationRental.ApplicationServices.Services
 
                         if (count >= rental.Units) result.AddError("Not available");
                     }
+                }
+            }
+            catch (Exception ex)
+            {
+                result.AddException(ex);
+            }
+        }
+
+        public void ValidatePreparationTimeChange(int rentalId, int newPreparationTimeInDays, OperationResult result)
+        {
+            try
+            {
+                var activePreparationTimes = _bookingRep.GetPreparationTimesByRentalFromDate(rentalId, DateTime.Now.Date);
+
+                foreach (var prepTime in activePreparationTimes)
+                {
+                    var bookingsConflict = _bookingRep.GetBookingsByRentalUnitRange(rentalId, prepTime.Unit, prepTime.Start, newPreparationTimeInDays).ToList();
+
+                    bookingsConflict = bookingsConflict.Where(b => b.Id != prepTime.Id).ToList();
+
+                    if (bookingsConflict.Count() > 0)
+                    {
+                        result.AddError("Fail to update. Overlapping will occur.");
+                        break;
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+                result.AddException(ex);
+            }
+        }
+
+        public void ValidateActiveBookingsForDeletedUnit(int rentalId, int unit, OperationResult result)
+        {
+            try
+            {
+                if (_bookingRep.GetBookingsByRentalUnitFromDate(rentalId, unit, DateTime.Now.Date).Count() > 0)
+                {
+                    result.AddError($"Unit {unit} cannot be removed. Has active bookings.");
                 }
             }
             catch (Exception ex)

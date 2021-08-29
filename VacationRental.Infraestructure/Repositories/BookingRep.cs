@@ -61,11 +61,11 @@ namespace VacationRental.Infraestructure
             return new List<Booking>();
         }
 
-        public IEnumerable<Booking> GetBookingsByRentalDate(int rentaId, DateTime date)
+        public IEnumerable<Booking> GetBookingsByRentalDate(int rentalId, DateTime date)
         {
             try
             {
-                return _context.Bookings.Values.Where(b => b.RentalId == rentaId &&
+                return _context.Bookings.Values.Where(b => b.RentalId == rentalId &&
                                                 b.Start <= date &&
                                                 b.Start.AddDays(b.Nights) > date).ToList();
             }
@@ -77,14 +77,50 @@ namespace VacationRental.Infraestructure
             return new List<Booking>();
         }
 
-        public IEnumerable<Booking> GetBookingsByRentalRange(int rentaId, DateTime date, int nights)
+        public IEnumerable<Booking> GetBookingsByRentalRange(int rentalId, DateTime date, int nights)
         {
             try
             {
-                return _context.Bookings.Values.Where(b => b.RentalId == rentaId 
-                                                        && (b.Start <= date && b.Start.AddDays(b.Nights) > date)
+                return _context.Bookings.Values.Where(b => b.RentalId == rentalId 
+                                                        && ((b.Start <= date && b.Start.AddDays(b.Nights) > date)
                                                         || (b.Start < date.AddDays(nights) && b.Start.AddDays(b.Nights) >= date.AddDays(nights))
-                                                        || (b.Start > date && b.Start.AddDays(b.Nights) < date.AddDays(nights))).ToList();                
+                                                        || (b.Start > date && b.Start.AddDays(b.Nights) < date.AddDays(nights)))).ToList();                
+            }
+            catch
+            {
+                //Add some logging
+            }
+
+            return new List<Booking>();
+        }
+
+        public IEnumerable<Booking> GetBookingsByRentalUnitRange(int rentalId, int unit, DateTime date, int nights)
+        {
+            try
+            {
+                return _context.Bookings.Values.Where(b => b.RentalId == rentalId
+                                                        && b.Unit == unit
+                                                        && ((b.Start <= date && b.Start.AddDays(b.Nights) > date)
+                                                        || (b.Start < date.AddDays(nights) && b.Start.AddDays(b.Nights) >= date.AddDays(nights))
+                                                        || (b.Start > date && b.Start.AddDays(b.Nights) < date.AddDays(nights)))).ToList();
+            }
+            catch
+            {
+                //Add some logging
+            }
+
+            return new List<Booking>();
+        }
+
+        public IEnumerable<Booking> GetBookingsByRentalUnitFromDate(int rentalId, int unit, DateTime date)
+        {
+            try
+            {
+                return _context.Bookings.Values.Where(b => b.RentalId == rentalId &&
+                                                b.Unit == unit &&
+                                                (b.Start <= date &&
+                                                b.Start.AddDays(b.Nights) > date ||
+                                                b.Start > date)).ToList();
             }
             catch
             {
@@ -115,6 +151,55 @@ namespace VacationRental.Infraestructure
             }
             
             return null;
+        }
+
+        public IEnumerable<Booking> GetPreparationTimesByRentalDate(int rentaId, DateTime date)
+        {
+            try
+            {
+                return _context.Bookings.Values.Where(b => b.RentalId == rentaId &&
+                                                b.Start <= date &&
+                                                b.Start.AddDays(b.Nights) > date
+                                                && b.IsPreparationTime == true).ToList();
+            }
+            catch
+            {
+                //Add some logging
+            }
+
+            return new List<Booking>();
+        }
+
+        public IEnumerable<Booking> GetPreparationTimesByRentalFromDate(int rentaId, DateTime date)
+        {
+            try
+            {
+                return _context.Bookings.Values.Where(b => b.RentalId == rentaId &&
+                                                (b.Start <= date &&
+                                                 b.Start.AddDays(b.Nights) > date ||
+                                                 b.Start > date )
+                                                && b.IsPreparationTime == true).ToList();
+            }
+            catch
+            {
+                //Add some logging
+            }
+
+            return new List<Booking>();
+        }
+
+        public void Update(Booking bookingUpdate)
+        {
+            try
+            {
+                _context.Bookings.Remove(bookingUpdate.Id);
+                _context.Bookings.Add(bookingUpdate.Id, bookingUpdate);
+            }
+            catch
+            {
+                //Add some logging
+                throw;
+            }
         }
     }
 }

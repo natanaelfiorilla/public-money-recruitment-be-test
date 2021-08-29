@@ -8,5 +8,6 @@ namespace VacationRental.ApplicationServices
     {
         OperationResult<Booking> GetBooking(int bookingId);
         OperationResult<Booking> Create(Booking bookingNew);
+        void UpdatePreparationTimes(int rentalId, int preparationTimeInDays, OperationResult result);
     }
 }

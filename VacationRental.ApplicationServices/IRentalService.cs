@@ -7,5 +7,6 @@ namespace VacationRental.ApplicationServices
     {
         OperationResult<Rental> GetRental(int rentalId);
         OperationResult<Rental> Create(Rental rentalNew);
+        OperationResult Update(int rentalId, Rental rentalUpdate);
     }
 }

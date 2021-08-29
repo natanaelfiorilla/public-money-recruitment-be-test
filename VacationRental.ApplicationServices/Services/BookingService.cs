@@ -77,7 +77,44 @@ namespace VacationRental.ApplicationServices.Services
             return result;
         }
 
-        private int GetRentalPreparationTime(int rentalId, OperationResult<Booking> result)
+        public OperationResult<Booking> GetBooking(int bookingId)
+        {
+            OperationResult<Booking> result = OperationResultHelpers.Ok<Booking>();
+
+            try
+            {
+                result.Value = _bookingRep.GetById(bookingId);
+            }
+            catch (Exception ex)
+            {
+                result.AddException(ex);
+            }
+
+            return result;
+        }
+
+        public void UpdatePreparationTimes(int rentalId, int preparationTimeInDays, OperationResult result)
+        {
+            try
+            {
+                _availabilityService.ValidatePreparationTimeChange(rentalId, preparationTimeInDays, result);
+
+                if(result)
+                {
+                    foreach (var preparationTime in _bookingRep.GetPreparationTimesByRentalFromDate(rentalId, DateTime.Now.Date))
+                    {
+                        preparationTime.Nights = preparationTimeInDays;
+                        _bookingRep.Update(preparationTime);
+                    }                   
+                }                
+            }
+            catch (Exception ex)
+            {
+                result.AddException(ex);
+            } 
+        }
+
+        private int GetRentalPreparationTime(int rentalId, OperationResult result)
         {
             try
             {
@@ -96,22 +133,6 @@ namespace VacationRental.ApplicationServices.Services
             }
 
             return 0;
-        }
-
-        public OperationResult<Booking> GetBooking(int bookingId)
-        {
-            OperationResult<Booking> result = OperationResultHelpers.Ok<Booking>();
-
-            try
-            {
-                result.Value = _bookingRep.GetById(bookingId);
-            }
-            catch (Exception ex)
-            {
-                result.AddException(ex);
-            }
-
-            return result;
         }
 
         private void Validate(Booking bookingNew, OperationResult<Booking> result)

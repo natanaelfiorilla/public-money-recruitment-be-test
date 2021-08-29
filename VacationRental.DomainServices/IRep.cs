@@ -13,5 +13,7 @@ namespace VacationRental.DomainServices
         int Count();
 
         void Add(T newObject);
+
+        void Update(T newObject);
     }
 }

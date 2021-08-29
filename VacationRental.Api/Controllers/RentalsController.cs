@@ -46,6 +46,7 @@ namespace VacationRental.Api.Controllers
         [HttpPost]
         public ActionResult<ResourceIdViewModel> Post(RentalBindingModel model)
         {
+            if (model == null) return BadRequest();
             if (model.Units <= 0) return BadRequest("Units musts be positive");
             if (model.PreparationTimeInDays < 0) return BadRequest("Preparation Time must be positive");
 
@@ -65,6 +66,30 @@ namespace VacationRental.Api.Controllers
             if (result.Value == null) throw new Exception("Internal Server Error.");
 
             return _mapper.Map<Rental, ResourceIdViewModel>(result.Value);            
+        }
+
+        [HttpPut]
+        [Route("{rentalId:int}")]
+        public IActionResult Put(int rentalId, RentalBindingModel model)
+        {
+            if (model == null) return BadRequest();
+            if (model.Units <= 0) return BadRequest("Units musts be positive");
+            if (model.PreparationTimeInDays < 0) return BadRequest("Preparation Time must be positive");
+
+            var rentalUpdate = _mapper.Map<RentalBindingModel, Rental>(model);
+
+            OperationResult result = _rentalService.Update(rentalId, rentalUpdate);
+
+            if (result == null) throw new Exception("Internal Server Error.");
+
+            if (!result)
+            {
+                if (result.HasErrors()) return BadRequest(result.Errors);
+
+                if (result.IsException()) throw new Exception("Internal Server Error.");
+            }
+
+            return NoContent();
         }
     }
 }

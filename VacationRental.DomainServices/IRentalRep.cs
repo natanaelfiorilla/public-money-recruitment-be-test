@@ -3,6 +3,6 @@
 namespace VacationRental.DomainServices
 {
     public interface IRentalRep : IRep<Rental>
-    {
+    {        
     }
 }

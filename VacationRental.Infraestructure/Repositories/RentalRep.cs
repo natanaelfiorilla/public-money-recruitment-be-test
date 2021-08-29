@@ -17,7 +17,15 @@ namespace VacationRental.Infraestructure
 
         public void Add(Rental newObject)
         {
-            _context.Rentals.Add(newObject.Id, newObject);
+            try
+            {
+                _context.Rentals.Add(newObject.Id, newObject);
+            }
+            catch
+            {
+                //Add some logging
+                throw;
+            }
         }
 
         public int Count()
@@ -82,6 +90,20 @@ namespace VacationRental.Infraestructure
             }
 
             return null;
+        }
+
+        public void Update(Rental rentalUpdate)
+        {
+            try
+            {
+                _context.Rentals.Remove(rentalUpdate.Id);
+                _context.Rentals.Add(rentalUpdate.Id, rentalUpdate);
+            }
+            catch
+            {
+                //Add some logging
+                throw;
+            }            
         }
     }
 }
