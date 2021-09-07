@@ -1,7 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using VacationRental.Api.Models;
+using VacationRental.ApplicationServices;
+using VacationRental.Common;
+using VacationRental.Domain.Entities;
 
 namespace VacationRental.Api.Controllers
 {
@@ -9,35 +13,83 @@ namespace VacationRental.Api.Controllers
     [ApiController]
     public class RentalsController : ControllerBase
     {
-        private readonly IDictionary<int, RentalViewModel> _rentals;
+        private readonly IRentalService _rentalService;
+        private readonly IMapper _mapper;
 
-        public RentalsController(IDictionary<int, RentalViewModel> rentals)
+        public RentalsController(IRentalService rentalService,
+                                  IMapper mapper)
         {
-            _rentals = rentals;
+            _rentalService = rentalService;
+            _mapper = mapper;
         }
 
         [HttpGet]
         [Route("{rentalId:int}")]
-        public RentalViewModel Get(int rentalId)
+        public ActionResult<RentalViewModel> Get(int rentalId)
         {
-            if (!_rentals.ContainsKey(rentalId))
-                throw new ApplicationException("Rental not found");
+            OperationResult<Rental> result = _rentalService.GetRental(rentalId);
 
-            return _rentals[rentalId];
+            if (result == null) throw new Exception("Internal Server Error.");
+
+            if (!result)
+            {
+                if (result.HasErrors()) return BadRequest(result.Errors);
+
+                if (result.IsException()) throw new Exception("Internal Server Error.");
+            }
+
+            if (result.Value == null) return NotFound();
+
+            return _mapper.Map<Rental, RentalViewModel>(result.Value);
         }
 
         [HttpPost]
-        public ResourceIdViewModel Post(RentalBindingModel model)
+        public ActionResult<ResourceIdViewModel> Post(RentalBindingModel model)
         {
-            var key = new ResourceIdViewModel { Id = _rentals.Keys.Count + 1 };
+            if (model == null) return BadRequest();
+            if (model.Units <= 0) return BadRequest("Units musts be positive");
+            if (model.PreparationTimeInDays < 0) return BadRequest("Preparation Time must be positive");
 
-            _rentals.Add(key.Id, new RentalViewModel
+            var rentalNew = _mapper.Map<RentalBindingModel, Rental>(model);
+
+            OperationResult<Rental> result = _rentalService.Create(rentalNew);
+
+            if (result == null) throw new Exception("Internal Server Error.");
+
+            if (!result)
             {
-                Id = key.Id,
-                Units = model.Units
-            });
+                if (result.HasErrors()) return BadRequest(result.Errors);
 
-            return key;
+                if (result.IsException()) throw new Exception("Internal Server Error.");
+            }
+
+            if (result.Value == null) throw new Exception("Internal Server Error.");
+
+            return _mapper.Map<Rental, ResourceIdViewModel>(result.Value);            
+        }
+
+        [HttpPut]
+        [Route("{rentalId:int}")]
+        public IActionResult Put(int rentalId, RentalBindingModel model)
+        {
+            if (model == null) return BadRequest();
+            if (model.Units <= 0) return BadRequest("Units musts be positive");
+            if (model.PreparationTimeInDays < 0) return BadRequest("Preparation Time must be positive");
+
+            var rentalUpdate = _mapper.Map<RentalBindingModel, Rental>(model);
+
+            OperationResult result = _rentalService.Update(rentalId, rentalUpdate);
+
+            if (result == null) throw new Exception("Internal Server Error.");
+
+            if (!result)
+            {
+                if (result.HasErrors()) return BadRequest(result.Errors);
+
+                if (result.IsException()) throw new Exception("Internal Server Error.");
+            }
+
+            return NoContent();
         }
     }
 }

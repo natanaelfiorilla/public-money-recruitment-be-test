@@ -1,8 +1,16 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
+using Moq;
+using VacationRental.Api.Controllers;
 using VacationRental.Api.Models;
+using VacationRental.ApplicationServices;
+using VacationRental.Common;
+using VacationRental.Domain.Entities;
 using Xunit;
 
 namespace VacationRental.Api.Tests
@@ -18,76 +26,131 @@ namespace VacationRental.Api.Tests
         }
 
         [Fact]
-        public async Task GivenCompleteRequest_WhenGetCalendar_ThenAGetReturnsTheCalculatedCalendar()
+        public async Task GivenRequestWithNightsNonPositive_WhenGetCalendar_ThenABadRequestReturns()
         {
-            var postRentalRequest = new RentalBindingModel
+            var rentalId = 1;
+            var startDate = "2000-01-01";
+            var negativeNigths = -1;
+
+            using (var getCalendarResponse = await _client.GetAsync($"/api/v1/calendar?rentalId={rentalId}&start={startDate}&nights={negativeNigths}"))
             {
-                Units = 2
+                Assert.False(getCalendarResponse.IsSuccessStatusCode);
+                Assert.True(getCalendarResponse.StatusCode == HttpStatusCode.BadRequest);
+            }
+        }
+
+        [Fact]
+        public async Task GivenRequestWithStartLowerThanMinValue_WhenGetCalendar_ThenABadRequestReturns()
+        {
+            var rentalId = 1;
+            var startDate = DateTime.MinValue;
+            var nigths = 5;
+
+            using (var getCalendarResponse = await _client.GetAsync($"/api/v1/calendar?rentalId={rentalId}&start={startDate}&nights={nigths}"))
+            {
+                Assert.False(getCalendarResponse.IsSuccessStatusCode);
+                Assert.True(getCalendarResponse.StatusCode == HttpStatusCode.BadRequest);
+            }
+        }
+
+        [Fact]
+        public async Task GivenRequestWithStarGratherThanMaxValue_WhenGetCalendar_ThenABadRequestReturns()
+        {
+            var rentalId = 1;
+            var startDate = DateTime.MaxValue;
+            var nigths = 5;
+
+            using (var getCalendarResponse = await _client.GetAsync($"/api/v1/calendar?rentalId={rentalId}&start={startDate}&nights={nigths}"))
+            {
+                Assert.False(getCalendarResponse.IsSuccessStatusCode);
+                Assert.True(getCalendarResponse.StatusCode == HttpStatusCode.BadRequest);
+            }
+        }
+
+        [Fact]
+        public void GivenRequestWithNoExistingRental_WhenGetCalendar_ThenABadRequestReturns()
+        {
+            var rentalId = 999999;
+            var startDate = DateTime.Now;
+            var nigths = 5;
+
+            var mockCalendarService = new Mock<ICalendarService>();
+            mockCalendarService.Setup(c => c.GetCalendar(It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<int>()))
+                .Returns(OperationResultHelpers.Error("Rental not found", new Calendar()));
+
+            var mockMapper = new Mock<IMapper>();
+
+            var controller = new CalendarController(mockCalendarService.Object, mockMapper.Object);
+
+            var getCalendarResponse = controller.Get(rentalId, startDate, nigths);
+
+            Assert.IsType<BadRequestObjectResult>(getCalendarResponse.Result);
+        }
+
+        [Fact]
+        public void GivenOkRequest_WhenGetCalendar_Then500ErrorReturns()
+        {
+            var rentalId = 1;
+            var startDate = DateTime.Now;
+            var nigths = 5;
+
+            var mockCalendarService = new Mock<ICalendarService>();
+            mockCalendarService.Setup(c => c.GetCalendar(It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<int>()))
+                .Returns(OperationResultHelpers.ExceptionResult<Calendar>(new Exception()));
+
+            var mockMapper = new Mock<IMapper>();
+
+            var controller = new CalendarController(mockCalendarService.Object, mockMapper.Object);
+
+            Assert.Throws<Exception>(() => controller.Get(rentalId, startDate, nigths));
+
+        }
+
+        [Fact]
+        public void GivenCompleteRequest_WhenGetCalendar_ThenAGetReturnsTheCalculatedCalendar()
+        {
+            var rentalId = 1;
+            var startDate = DateTime.Now;
+            var nigths = 5;
+
+            var calendarFake = new Calendar()
+            {
+                RentalId = 1,
+                Dates = new List<CalendarDate>()
+                {
+                    new CalendarDate() { Date = DateTime.Now,
+                                         Bookings = new List<CalendarBooking>()
+                                         {
+                                            new CalendarBooking() { Id = 1, Unit = 1 }
+                                         },
+                                         PreparationTimes = new List<CalendarBooking>()
+                                         {
+                                            new CalendarBooking() { Unit = 1 }
+                                         }
+                                        }
+                }
             };
 
-            ResourceIdViewModel postRentalResult;
-            using (var postRentalResponse = await _client.PostAsJsonAsync($"/api/v1/rentals", postRentalRequest))
-            {
-                Assert.True(postRentalResponse.IsSuccessStatusCode);
-                postRentalResult = await postRentalResponse.Content.ReadAsAsync<ResourceIdViewModel>();
-            }
+            var mockCalendarService = new Mock<ICalendarService>();
+            mockCalendarService.Setup(c => c.GetCalendar(It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<int>()))
+                .Returns(OperationResultHelpers.Ok(calendarFake));
 
-            var postBooking1Request = new BookingBindingModel
-            {
-                 RentalId = postRentalResult.Id,
-                 Nights = 2,
-                 Start = new DateTime(2000, 01, 02)
-            };
+            var mapper = new Mapper(new MapperConfiguration(cfg => cfg.AddProfile<VacationRentalMappingProfile>()));
 
-            ResourceIdViewModel postBooking1Result;
-            using (var postBooking1Response = await _client.PostAsJsonAsync($"/api/v1/bookings", postBooking1Request))
-            {
-                Assert.True(postBooking1Response.IsSuccessStatusCode);
-                postBooking1Result = await postBooking1Response.Content.ReadAsAsync<ResourceIdViewModel>();
-            }
+            var controller = new CalendarController(mockCalendarService.Object, mapper);
 
-            var postBooking2Request = new BookingBindingModel
-            {
-                RentalId = postRentalResult.Id,
-                Nights = 2,
-                Start = new DateTime(2000, 01, 03)
-            };
+            var getCalendarResult = controller.Get(rentalId, startDate, nigths);
 
-            ResourceIdViewModel postBooking2Result;
-            using (var postBooking2Response = await _client.PostAsJsonAsync($"/api/v1/bookings", postBooking2Request))
-            {
-                Assert.True(postBooking2Response.IsSuccessStatusCode);
-                postBooking2Result = await postBooking2Response.Content.ReadAsAsync<ResourceIdViewModel>();
-            }
+            Assert.Equal(rentalId, getCalendarResult.Value.RentalId);
+            Assert.Single(getCalendarResult.Value.Dates);
 
-            using (var getCalendarResponse = await _client.GetAsync($"/api/v1/calendar?rentalId={postRentalResult.Id}&start=2000-01-01&nights=5"))
-            {
-                Assert.True(getCalendarResponse.IsSuccessStatusCode);
+            Assert.Equal(startDate.Date, getCalendarResult.Value.Dates[0].Date.Date);
+            Assert.Single(getCalendarResult.Value.Dates[0].Bookings);
+            Assert.Single(getCalendarResult.Value.Dates[0].PreparationTimes);
 
-                var getCalendarResult = await getCalendarResponse.Content.ReadAsAsync<CalendarViewModel>();
-                
-                Assert.Equal(postRentalResult.Id, getCalendarResult.RentalId);
-                Assert.Equal(5, getCalendarResult.Dates.Count);
+            Assert.Equal(1, getCalendarResult.Value.Dates[0].Bookings[0].Unit);
 
-                Assert.Equal(new DateTime(2000, 01, 01), getCalendarResult.Dates[0].Date);
-                Assert.Empty(getCalendarResult.Dates[0].Bookings);
-                
-                Assert.Equal(new DateTime(2000, 01, 02), getCalendarResult.Dates[1].Date);
-                Assert.Single(getCalendarResult.Dates[1].Bookings);
-                Assert.Contains(getCalendarResult.Dates[1].Bookings, x => x.Id == postBooking1Result.Id);
-                
-                Assert.Equal(new DateTime(2000, 01, 03), getCalendarResult.Dates[2].Date);
-                Assert.Equal(2, getCalendarResult.Dates[2].Bookings.Count);
-                Assert.Contains(getCalendarResult.Dates[2].Bookings, x => x.Id == postBooking1Result.Id);
-                Assert.Contains(getCalendarResult.Dates[2].Bookings, x => x.Id == postBooking2Result.Id);
-                
-                Assert.Equal(new DateTime(2000, 01, 04), getCalendarResult.Dates[3].Date);
-                Assert.Single(getCalendarResult.Dates[3].Bookings);
-                Assert.Contains(getCalendarResult.Dates[3].Bookings, x => x.Id == postBooking2Result.Id);
-                
-                Assert.Equal(new DateTime(2000, 01, 05), getCalendarResult.Dates[4].Date);
-                Assert.Empty(getCalendarResult.Dates[4].Bookings);
-            }
+            Assert.Contains(getCalendarResult.Value.Dates[0].PreparationTimes, x => x.Unit == getCalendarResult.Value.Dates[0].Bookings[0].Unit);
         }
     }
 }
